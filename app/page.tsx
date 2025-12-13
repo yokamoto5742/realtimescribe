@@ -5,30 +5,19 @@ import { useScribe } from "@elevenlabs/react";
 import { useState, useCallback } from "react";
 
 export default function Home() {
-  const [transcripts, setTranscripts] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // useScribeフックの初期化
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    // 部分的な転写（話している最中のテキスト）
-    onPartialTranscript: (data) => {
-      // コンソールデバッグ用。UI表示にはscribe.partialTranscriptを利用。
-      // console.log("Partial:", data.text);
-    },
-    // 確定した転写（話し終わったテキスト）
-    onCommittedTranscript: (data) => {
-      // 既存の履歴に追加
-      setTranscripts((prev) => [...prev, data.text]);
-    },
     onError: (err) => {
       console.error("Scribe error:", err);
-      setError("文字起こし中にエラーが発生しました。");
+      setConnectionError("文字起こし中にエラーが発生しました。");
     }
   });
 
   const handleStart = useCallback(async () => {
-    setError(null);
+    setConnectionError(null);
     try {
       // 1. サーバーからトークンを取得
       const response = await fetch('/api/get-token');
@@ -45,7 +34,7 @@ export default function Home() {
       });
     } catch (err) {
       console.error("Connection failed:", err);
-      setError("接続に失敗しました。APIキーなどを確認してください。");
+      setConnectionError("接続に失敗しました。APIキーなどを確認してください。");
     }
   }, [scribe]);
 
@@ -54,14 +43,22 @@ export default function Home() {
     scribe.disconnect();
   }, [scribe]);
 
+  const handleClear = useCallback(() => {
+    // 文字起こし履歴をクリア
+    scribe.clearTranscripts();
+  }, [scribe]);
+
+  // エラー表示（接続エラーまたはSDKエラー）
+  const displayError = connectionError || scribe.error;
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-gray-50 text-gray-800">
       <h1 className="text-3xl font-bold mb-8">ElevenLabs Realtime Scribe</h1>
 
       {/* エラー表示エリア */}
-      {error && (
+      {displayError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+          {displayError}
         </div>
       )}
 
@@ -89,22 +86,34 @@ export default function Home() {
         >
           停止
         </button>
+        <button
+          onClick={handleClear}
+          disabled={scribe.committedTranscripts.length === 0}
+          className={`px-6 py-2 rounded font-semibold text-white transition ${
+            scribe.committedTranscripts.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-yellow-600 hover:bg-yellow-700'
+          }`}
+        >
+          クリア
+        </button>
       </div>
 
       {/* ステータス表示 */}
       <div className="mb-4 text-sm font-mono">
         Status: <span className={scribe.isConnected ? "text-green-600" : "text-gray-500"}>
-          {scribe.isConnected ? "Connected 🟢" : "Disconnected ⚪"}
+          {scribe.status === "transcribing" ? "Transcribing 🎤" :
+           scribe.isConnected ? "Connected 🟢" : "Disconnected ⚪"}
         </span>
       </div>
 
       {/* 文字起こし結果表示エリア */}
       <div className="w-full max-w-2xl bg-white rounded-lg shadow-md p-6 min-h-[400px] border border-gray-200">
         <div className="space-y-4">
-          {/* 確定済みテキストの履歴 */}
-          {transcripts.map((text, index) => (
-            <p key={index} className="text-gray-800 leading-relaxed border-b border-gray-100 pb-2 last:border-0">
-              {text}
+          {/* 確定済みテキストの履歴（SDKのcommittedTranscriptsを使用） */}
+          {scribe.committedTranscripts.map((segment) => (
+            <p key={segment.id} className="text-gray-800 leading-relaxed border-b border-gray-100 pb-2 last:border-0">
+              {segment.text}
             </p>
           ))}
 
@@ -112,6 +121,13 @@ export default function Home() {
           {scribe.partialTranscript && (
             <p className="text-blue-600 italic animate-pulse font-medium">
               {scribe.partialTranscript}
+            </p>
+          )}
+
+          {/* 何も表示がない場合のプレースホルダー */}
+          {scribe.committedTranscripts.length === 0 && !scribe.partialTranscript && (
+            <p className="text-gray-400 italic text-center">
+              {scribe.isConnected ? "話し始めてください..." : "「録音開始」を押してください"}
             </p>
           )}
         </div>
