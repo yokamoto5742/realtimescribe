@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Automatic Notifications (Hooks)
+自動通知は`.claude/settings.local.json` で設定済：
+- **Stop Hook**: ユーザーがClaude Codeを停止した時に「作業が完了しました」と通知
+- **SessionEnd Hook**: セッション終了時に「Claude Code セッションが終了しました」と通知
+
 ## Project Overview
 
 This is a Next.js 16 application named **realtimescribe** built with TypeScript, React 19, and Tailwind CSS v4. The project uses the ElevenLabs React SDK (`@elevenlabs/react`) for real-time audio/transcription functionality.
