@@ -50,8 +50,19 @@ export default function Home() {
   }, [scribe]);
 
   const handleCopy = useCallback(async () => {
-    // 全ての確定済みテキストを結合
-    const allText = scribe.committedTranscripts.map(t => t.text).join('\n');
+    // 確定済みテキストを結合
+    const committedText = scribe.committedTranscripts.map(t => t.text).join('\n');
+
+    // 未確定テキストも含める
+    const parts = [];
+    if (committedText) parts.push(committedText);
+    if (scribe.partialTranscript) parts.push(scribe.partialTranscript);
+
+    const allText = parts.join('\n');
+
+    console.log('Copying text:', allText);
+    console.log('committedTranscripts count:', scribe.committedTranscripts.length);
+    console.log('partialTranscript:', scribe.partialTranscript);
 
     try {
       await navigator.clipboard.writeText(allText);
@@ -61,7 +72,7 @@ export default function Home() {
     } catch (err) {
       console.error('コピーに失敗しました:', err);
     }
-  }, [scribe.committedTranscripts]);
+  }, [scribe]);
 
   // エラー表示（接続エラーまたはSDKエラー）
   const displayError = connectionError || scribe.error;
