@@ -2,6 +2,7 @@
 'use client';
 
 import { useScribe } from "@elevenlabs/react";
+import { CommitStrategy } from "@elevenlabs/client";
 import { useState, useCallback, useEffect, useRef } from "react";
 
 export default function Home() {
