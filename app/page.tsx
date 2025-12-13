@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 
 export default function Home() {
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // useScribeフックの初期化
   const scribe = useScribe({
@@ -48,6 +49,20 @@ export default function Home() {
     scribe.clearTranscripts();
   }, [scribe]);
 
+  const handleCopy = useCallback(async () => {
+    // 全ての確定済みテキストを結合
+    const allText = scribe.committedTranscripts.map(t => t.text).join('\n');
+
+    try {
+      await navigator.clipboard.writeText(allText);
+      setCopySuccess(true);
+      // 2秒後にメッセージを消す
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('コピーに失敗しました:', err);
+    }
+  }, [scribe.committedTranscripts]);
+
   // エラー表示（接続エラーまたはSDKエラー）
   const displayError = connectionError || scribe.error;
 
@@ -87,13 +102,14 @@ export default function Home() {
           停止
         </button>
         <button
+          onClick={handleCopy}
+          className="px-6 py-2 rounded font-semibold text-white transition bg-green-600 hover:bg-green-700"
+        >
+          {copySuccess ? 'コピー完了!' : 'コピー'}
+        </button>
+        <button
           onClick={handleClear}
-          disabled={scribe.committedTranscripts.length === 0}
-          className={`px-6 py-2 rounded font-semibold text-white transition ${
-            scribe.committedTranscripts.length === 0
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-yellow-600 hover:bg-yellow-700'
-          }`}
+          className="px-6 py-2 rounded font-semibold text-white transition bg-yellow-600 hover:bg-yellow-700"
         >
           クリア
         </button>
