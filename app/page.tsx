@@ -2,11 +2,13 @@
 'use client';
 
 import { useScribe } from "@elevenlabs/react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 export default function Home() {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  // 各セグメントのDOM要素への参照を保持
+  const segmentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // useScribeフックの初期化
   const scribe = useScribe({
@@ -49,11 +51,18 @@ export default function Home() {
   const handleClear = useCallback(() => {
     // 文字起こし履歴をクリア
     scribe.clearTranscripts();
+    // DOM参照もクリア
+    segmentRefs.current = {};
   }, [scribe]);
 
   const handleCopy = useCallback(async () => {
-    // 確定済みテキストを結合
-    const committedText = scribe.committedTranscripts.map(t => t.text).join('\n');
+    // DOM要素から直接テキストを取得（編集された内容を含む）
+    const committedText = scribe.committedTranscripts
+      .map(t => {
+        const element = segmentRefs.current[t.id];
+        return element ? element.textContent || '' : t.text;
+      })
+      .join('\n');
 
     // 未確定テキストも含める
     const parts = [];
@@ -139,11 +148,19 @@ export default function Home() {
       {/* 文字起こし結果表示エリア */}
       <div className="w-full max-w-2xl bg-white rounded-lg shadow-md p-6 min-h-[400px] border border-gray-200">
         <div className="space-y-4">
-          {/* 確定済みテキストの履歴（SDKのcommittedTranscriptsを使用） */}
+          {/* 確定済みテキストの履歴（編集可能） */}
           {scribe.committedTranscripts.map((segment) => (
-            <p key={segment.id} className="text-gray-800 leading-relaxed border-b border-gray-100 pb-2 last:border-0">
+            <div
+              key={segment.id}
+              ref={(el) => {
+                if (el) segmentRefs.current[segment.id] = el;
+              }}
+              contentEditable
+              suppressContentEditableWarning
+              className="text-gray-800 leading-relaxed border-b border-gray-100 pb-2 last:border-0 focus:outline-none focus:bg-yellow-50 px-2 py-1 rounded cursor-text"
+            >
               {segment.text}
-            </p>
+            </div>
           ))}
 
           {/* リアルタイム変動中のテキスト（未確定） */}
