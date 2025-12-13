@@ -11,6 +11,7 @@ export default function Home() {
   // useScribeフックの初期化
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
+    commitStrategy: "vad",  // 自動確定モード
     onError: (err) => {
       console.error("Scribe error:", err);
       setConnectionError("文字起こし中にエラーが発生しました。");
@@ -40,7 +41,8 @@ export default function Home() {
   }, [scribe]);
 
   const handleStop = useCallback(() => {
-    // 接続を切断
+    // 未確定テキストを確定してから接続を切断
+    scribe.commit();
     scribe.disconnect();
   }, [scribe]);
 
