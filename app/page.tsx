@@ -14,7 +14,7 @@ export default function Home() {
   // useScribeフックの初期化
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",  // 自動確定モード
+    commitStrategy: CommitStrategy.VAD,  // 自動確定モード
     onError: (err) => {
       console.error("Scribe error:", err);
       setConnectionError("文字起こし中にエラーが発生しました。");
